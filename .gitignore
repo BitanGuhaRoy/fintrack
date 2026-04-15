@@ -1,0 +1,13 @@
+# Local IDE files
+.vscode/
+.DS_Store
+
+# Version control artifacts
+.git/
+
+# Temporary files
+*.tmp
+*.log
+
+# Python simple server artifacts
+__pycache__/

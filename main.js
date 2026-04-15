@@ -31,79 +31,14 @@ if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
     });
 }
 
-const SAMPLE_DATA = {
-    monthlyPlans: {
-        "2026-04": {
-            income: 120000,
-            buckets: [
-                { id: "s1", name: "Rent & Utilities", amount: 25000, category: "housing", paid: true },
-                { id: "s2", name: "Groceries", amount: 12000, category: "food", paid: true },
-                { id: "s3", name: "Mutual Fund SIP", amount: 30000, category: "savings", paid: true },
-                { id: "s4", name: "Home Loan EMI", amount: 22000, category: "loans", paid: true },
-                { id: "s5", name: "Entertainment", amount: 5000, category: "entertainment", paid: false }
-            ]
-        }
-    },
-    goals: [
-        {
-            id: "sg1",
-            name: "Toyota Fortuner",
-            targetToday: 4500000,
-            creationYear: 2024,
-            inflationRate: 6,
-            saved: 1250000,
-            investment: "Equity & Debt Mix",
-            monthlyLogs: [
-                { date: "2026-04", invested: 50000, corpus: 1250000 },
-                { date: "2026-03", invested: 50000, corpus: 1180000 }
-            ],
-            countInNetWorth: true
-        }
-    ],
-    expenses: [
-        { id: "se1", date: "2026-04-12", amount: 450, purpose: "Zomato - Pizza", isReflex: true },
-        { id: "se2", date: "2026-04-14", amount: 1200, purpose: "Shell - Petrol", isReflex: false }
-    ],
-    loans: [
-        {
-            id: "sl1",
-            name: "Home Loan",
-            bankName: "SBI",
-            emi: 22000,
-            totalEmis: 240,
-            emisPaid: 36,
-            startDate: "2023-04-01",
-            lastPaidMonth: "2026-03"
-        }
-    ],
-    assets: [
-        {
-            id: "sa1",
-            name: "Mutual Funds",
-            purchaseValue: 400000,
-            yearBought: 2024,
-            isAppreciating: true,
-            cagr: 12,
-            countInNetWorth: true
-        }
-    ]
-};
-
-const BLANK_STATE = {
+// --- STATE MANAGEMENT ---
+let AppState = {
     monthlyPlans: {},
     goals: [],
     expenses: [],
     loans: [],
     assets: []
 };
-
-// --- STATE MANAGEMENT ---
-let AppState = JSON.parse(JSON.stringify(SAMPLE_DATA));
-
-function resetAppState(toBlank = true) {
-    const source = toBlank ? BLANK_STATE : SAMPLE_DATA;
-    AppState = JSON.parse(JSON.stringify(source));
-}
 
 async function loadState() {
     if (currentUser) {
@@ -112,8 +47,6 @@ async function loadState() {
         const saved = localStorage.getItem('fintrack_state');
         if (saved) {
             AppState = JSON.parse(saved);
-        } else {
-            resetAppState(false); // Show sample data for guests
         }
         updateUI();
     }
@@ -132,17 +65,12 @@ async function loadCloudData() {
             // First time user? 
             const localSaved = localStorage.getItem('fintrack_state');
             if (localSaved) {
-                // If they have real local data, ask to sync it
-                if (confirm("Found local data! Would you like to sync it to the cloud?")) {
+                if (confirm("Found local data from this browser! Would you like to sync it to your cloud account?")) {
                     AppState = JSON.parse(localSaved);
-                    await saveState();
-                } else {
-                    resetAppState(true); // Start fresh
                     await saveState();
                 }
             } else {
-                // Totally new user with no local data? Start clean (remove sample data)
-                resetAppState(true);
+                // Totally new user - cloud bucket already initialized as empty
                 await saveState();
             }
         }

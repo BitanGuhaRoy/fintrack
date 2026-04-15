@@ -33,11 +33,84 @@ if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
 
 // --- STATE MANAGEMENT ---
 const AppState = {
-    monthlyPlans: {},
-    goals: [],
-    expenses: [],
-    loans: [],
-    assets: []
+    monthlyPlans: {
+        "2026-04": {
+            income: 120000,
+            buckets: [
+                { id: "1", name: "Rent & Utilities", amount: 25000, category: "housing", paid: true },
+                { id: "2", name: "Groceries", amount: 12000, category: "food", paid: true },
+                { id: "3", name: "Mutual Fund SIP", amount: 30000, category: "savings", paid: true },
+                { id: "4", name: "Home Loan EMI", amount: 22000, category: "loans", paid: true },
+                { id: "5", name: "Entertainment", amount: 5000, category: "entertainment", paid: false }
+            ]
+        }
+    },
+    goals: [
+        {
+            id: "g1",
+            name: "Toyota Fortuner",
+            targetToday: 4500000,
+            creationYear: 2024,
+            inflationRate: 6,
+            saved: 1250000,
+            investment: "Equity & Debt Mix",
+            monthlyLogs: [
+                { date: "2026-04", invested: 50000, corpus: 1250000 },
+                { date: "2026-03", invested: 50000, corpus: 1180000 }
+            ],
+            countInNetWorth: true
+        },
+        {
+            id: "g2",
+            name: "Maldives Trip",
+            targetToday: 300000,
+            creationYear: 2026,
+            inflationRate: 5,
+            saved: 45000,
+            investment: "Liquid Fund",
+            monthlyLogs: [
+                { date: "2026-04", invested: 15000, corpus: 45000 }
+            ],
+            countInNetWorth: true
+        }
+    ],
+    expenses: [
+        { id: "e1", date: "2026-04-12", amount: 450, purpose: "Zomato - Pizza", isReflex: true },
+        { id: "e2", date: "2026-04-14", amount: 1200, purpose: "Shell - Petrol", isReflex: false },
+        { id: "e3", date: "2026-04-15", amount: 3200, purpose: "Amazon - Shoes", isReflex: true }
+    ],
+    loans: [
+        {
+            id: "l1",
+            name: "Home Loan",
+            bankName: "SBI",
+            emi: 22000,
+            totalEmis: 240,
+            emisPaid: 36,
+            startDate: "2023-04-01",
+            lastPaidMonth: "2026-03"
+        }
+    ],
+    assets: [
+        {
+            id: "a1",
+            name: "Mutual Funds",
+            purchaseValue: 400000,
+            yearBought: 2024,
+            isAppreciating: true,
+            cagr: 12,
+            countInNetWorth: true
+        },
+        {
+            id: "a2",
+            name: "Gold",
+            purchaseValue: 180000,
+            yearBought: 2025,
+            isAppreciating: true,
+            cagr: 8,
+            countInNetWorth: true
+        }
+    ]
 };
 
 async function loadState() {

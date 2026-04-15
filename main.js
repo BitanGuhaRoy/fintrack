@@ -93,6 +93,38 @@ async function saveState() {
     updateUI();
 }
 
+window.resetAllData = async function () {
+    if (confirm("Are you SURE you want to delete EVERY THING? This will wipe your cloud database and local storage. This cannot be undone.")) {
+        // Reset local state
+        AppState = {
+            monthlyPlans: {},
+            goals: [],
+            expenses: [],
+            loans: [],
+            assets: []
+        };
+
+        // Clear Local Storage
+        localStorage.removeItem('fintrack_state');
+
+        // Clear Cloud if logged in
+        if (currentUser) {
+            const { doc, setDoc } = FirebaseSDK;
+            try {
+                await setDoc(doc(db, "users", currentUser.uid), AppState);
+                alert("Cloud and Local data has been wiped. Starting from 0!");
+            } catch (e) {
+                console.error("Cloud wipe failed:", e);
+                alert("Local data wiped, but Cloud wipe failed. Check your connection.");
+            }
+        } else {
+            alert("Local data has been wiped. Starting from 0!");
+        }
+
+        location.reload(); // Refresh to show clean slate
+    }
+};
+
 function updateAuthUI(isLoggedIn) {
     const loggedOutSection = document.getElementById('user-logged-out');
     const loggedInSection = document.getElementById('user-logged-in');

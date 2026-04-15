@@ -598,7 +598,7 @@ function recalculateGoalSaved(goalId) {
     goal.saved = sorted[0].corpus;
 }
 
-function openGoalModal(id) {
+window.openGoalModal = function(id) {
     const goal = AppState.goals.find(g => g.id === id);
     if (!goal) return;
 
@@ -618,7 +618,7 @@ function openGoalModal(id) {
     renderMonthlyLogs(id);
 }
 
-function closeGoalModal() {
+window.closeGoalModal = function() {
     document.getElementById('goal-modal').classList.remove('active');
 }
 

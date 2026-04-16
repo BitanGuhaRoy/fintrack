@@ -32,6 +32,9 @@
     <div class="app-container">
         <!-- Mobile Header (Only visible on small screens) -->
         <header class="mobile-header">
+            <button class="mobile-menu-btn" id="mobile-menu-btn">
+                <i data-lucide="menu"></i>
+            </button>
             <div class="mobile-logo">
                 <i data-lucide="wallet"></i>
                 <span>FinTrack</span>
@@ -49,10 +52,15 @@
         </header>
 
         <!-- Sidebar Navigation -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="logo">
-                <i data-lucide="wallet"></i>
-                <h1>FinTrack</h1>
+                <div class="flex items-center">
+                    <i data-lucide="wallet"></i>
+                    <h1>FinTrack</h1>
+                </div>
+                <button class="mobile-close-btn" id="close-sidebar-btn">
+                    <i data-lucide="x"></i>
+                </button>
             </div>
             
             <nav class="nav-menu">
@@ -760,6 +768,8 @@
                 <span>Loans</span>
             </button>
         </nav>
+        <!-- Mobile Sidebar Overlay -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
     </div>
 
     

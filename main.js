@@ -94,34 +94,22 @@ async function saveState() {
 }
 
 window.resetAllData = async function () {
-    if (confirm("Are you SURE you want to delete EVERY THING? This will wipe your cloud database and local storage. This cannot be undone.")) {
-        // Reset local state
-        AppState = {
-            monthlyPlans: {},
-            goals: [],
-            expenses: [],
-            loans: [],
-            assets: []
-        };
+    ...
+};
 
-        // Clear Local Storage
-        localStorage.removeItem('fintrack_state');
-
-        // Clear Cloud if logged in
-        if (currentUser) {
-            const { doc, setDoc } = FirebaseSDK;
-            try {
-                await setDoc(doc(db, "users", currentUser.uid), AppState);
-                alert("Cloud and Local data has been wiped. Starting from 0!");
-            } catch (e) {
-                console.error("Cloud wipe failed:", e);
-                alert("Local data wiped, but Cloud wipe failed. Check your connection.");
-            }
+window.toggleMobileSidebar = function(isOpen) {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (sidebar && overlay) {
+        if (isOpen) {
+            sidebar.classList.add('active');
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
         } else {
-            alert("Local data has been wiped. Starting from 0!");
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
         }
-
-        location.reload(); // Refresh to show clean slate
     }
 };
 
@@ -196,6 +184,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     updateUI();
+
+    // Mobile Sidebar Listeners
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const closeSidebarBtn = document.getElementById('close-sidebar-btn');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+    if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', () => window.toggleMobileSidebar(true));
+    if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', () => window.toggleMobileSidebar(false));
+    if (sidebarOverlay) sidebarOverlay.addEventListener('click', () => window.toggleMobileSidebar(false));
 });
 
 window.switchTab = function (tabName) {
@@ -230,6 +227,11 @@ function setupNavigation() {
             tabPanes.forEach(tab => tab.classList.remove('active'));
             const targetTab = document.getElementById(`tab-${targetId}`);
             if (targetTab) targetTab.classList.add('active');
+
+            // Close mobile sidebar if it's open
+            if (window.innerWidth <= 768) {
+                window.toggleMobileSidebar(false);
+            }
 
             // Scroll to top on mobile for better UX
             if (window.innerWidth <= 768) {

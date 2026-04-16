@@ -145,6 +145,38 @@ window.toggleMobileSidebar = function(isOpen) {
     }
 };
 
+/**
+ * Calculates loan metrics using the standard reducing balance amortization formula.
+ * Returns interestPaid, principalPaid, and remainingBalance.
+ */
+function calculateLoanMetrics(loan) {
+    const P = Number(loan.principal) || 0;
+    const annualRate = Number(loan.interestRate) || 0;
+    const r = annualRate / 12 / 100;
+    const n = Number(loan.totalEmis) || 0;
+    const monthsPaid = Number(loan.emisPaid) || 0;
+    const E = Number(loan.emi) || 0;
+
+    let remainingBalance = P;
+    let interestPaidSoFar = 0;
+    let principalPaidSoFar = 0;
+
+    for (let i = 1; i <= monthsPaid; i++) {
+        const interestForMonth = remainingBalance * r;
+        const principalForMonth = E - interestForMonth;
+        
+        interestPaidSoFar += interestForMonth;
+        principalPaidSoFar += principalForMonth;
+        remainingBalance -= principalForMonth;
+    }
+
+    return {
+        interestPaid: Math.max(0, interestPaidSoFar),
+        principalPaid: Math.max(0, principalPaidSoFar),
+        remainingBalance: Math.max(0, remainingBalance)
+    };
+}
+
 function updateAuthUI(isLoggedIn) {
     const loggedOutSection = document.getElementById('user-logged-out');
     const loggedInSection = document.getElementById('user-logged-in');
@@ -555,14 +587,16 @@ function setupForms() {
         e.preventDefault();
         const editId = document.getElementById('loan-edit-id').value;
         const purpose = document.getElementById('loan-purpose').value.trim();
+        const principal = Number(document.getElementById('loan-principal').value);
+        const interestRate = Number(document.getElementById('loan-interest-rate').value);
         const emi = Number(document.getElementById('loan-emi').value);
         const totalEmis = Number(document.getElementById('loan-total-emis').value);
         const startDate = document.getElementById('loan-start-date').value;
         const paidUpto = document.getElementById('loan-paid-upto').value;
 
         // Manual validation for required fields
-        if (!purpose || !emi || !totalEmis || !startDate) {
-            alert('Please fill in all required fields: Purpose, EMI Amount, Total EMIs, and 1st EMI Date.');
+        if (!purpose || !principal || !interestRate || !emi || !totalEmis || !startDate) {
+            alert('Please fill in all required fields: Purpose, Principal, Interest Rate, EMI, Total EMIs, and 1st EMI Date.');
             return;
         }
 
@@ -581,6 +615,8 @@ function setupForms() {
             const loan = AppState.loans.find(l => l.id === editId);
             if (loan) {
                 loan.purpose = purpose;
+                loan.principal = principal;
+                loan.interestRate = interestRate;
                 loan.emi = emi;
                 loan.totalEmis = totalEmis;
                 loan.startDate = startDate;
@@ -588,12 +624,22 @@ function setupForms() {
             }
         } else {
             // New loan
-            AppState.loans.push({ id: Date.now().toString(), purpose, emi, totalEmis, startDate, emisPaid });
+            AppState.loans.push({ 
+                id: Date.now().toString(), 
+                purpose, 
+                principal, 
+                interestRate, 
+                emi, 
+                totalEmis, 
+                startDate, 
+                emisPaid 
+            });
         }
 
         saveState();
         loanModal.classList.remove('active');
         loanForm.reset();
+        renderLoans(); // Refresh the list
     });
 }
 
@@ -1654,7 +1700,12 @@ function renderOverview() {
 
     // Total liabilities
     const totalLiabilities = (AppState.loans || []).reduce((sum, l) => {
-        const remaining = Math.max(0, (l.totalEmis - l.emisPaid)) * l.emi;
+        if (l.principal && l.interestRate) {
+            const metrics = calculateLoanMetrics(l);
+            return sum + metrics.remainingBalance;
+        }
+        // Fallback to simple calculation if new fields are missing
+        const remaining = Math.max(0, (l.totalEmis - l.emisPaid)) * (l.emi || 0);
         return sum + remaining;
     }, 0);
 
@@ -1829,11 +1880,45 @@ function renderLoans() {
         return;
     }
 
-    AppState.loans.forEach((loan, idx) => {
-        const percentPaid = Math.min(100, Math.round((loan.emisPaid / loan.totalEmis) * 100));
-        const percentRemaining = Math.max(0, 100 - percentPaid);
-        const totalPaid = loan.emisPaid * loan.emi;
-        const totalRemaining = Math.max(0, (loan.totalEmis - loan.emisPaid) * loan.emi);
+        AppState.loans.forEach((loan, idx) => {
+            const emisPaidVal = Number(loan.emisPaid) || 0;
+            const totalEmisVal = Number(loan.totalEmis) || 0;
+            const emiVal = Number(loan.emi) || 0;
+            
+            let percentPaid = Math.min(100, Math.round((emisPaidVal / totalEmisVal) * 100));
+            const totalPaid = emisPaidVal * emiVal;
+            let totalRemaining = Math.max(0, (totalEmisVal - emisPaidVal) * emiVal);
+            let outstandingLabel = 'Remaining EMI Total:';
+
+            // Detailed Amortization
+            let metricsHtml = '';
+            if (loan.principal && loan.interestRate) {
+                const metrics = calculateLoanMetrics(loan);
+                const totalInterestVal = metrics.interestPaid;
+                const totalPrincipalVal = metrics.principalPaid;
+                const remainingBal = metrics.remainingBalance;
+                
+                // Use principal-based progress if possible
+                percentPaid = Math.min(100, Math.round((totalPrincipalVal / loan.principal) * 100));
+                totalRemaining = remainingBal;
+                outstandingLabel = 'Current Principal Owed:';
+
+                metricsHtml = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,0.1);">
+                        <div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px;">Principal Paid</div>
+                            <div style="font-weight: 600; color: var(--success);">${formatCurrency(totalPrincipalVal)}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px;">Interest Paid</div>
+                            <div style="font-weight: 600; color: var(--warning);">${formatCurrency(totalInterestVal)}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const percentRemaining = Math.max(0, 100 - percentPaid);
+            const totalPaidFormatted = totalPaid; // Just for reference
 
         // Date Calculations
         let dateDetailsHtml = '';
@@ -1884,26 +1969,35 @@ function renderLoans() {
         const html = `
             <div class="loan-card glass">
                 <div class="loan-header">
-                    <h4>${loan.purpose}</h4>
+                    <div>
+                        <h4>${loan.purpose}</h4>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">${loan.interestRate ? `${loan.interestRate}% Annual Interest` : 'Tracking Months Only'}</div>
+                    </div>
                     <span class="text-primary font-bold">${formatCurrency(loan.emi)} /mo</span>
                 </div>
                 
                 ${dateDetailsHtml}
 
-                <div class="loan-stats">
-                    <span>EMIs Paid: <strong class="text-primary">${loan.emisPaid} / ${loan.totalEmis}</strong></span>
-                    <span>Paid: ${formatCurrency(totalPaid)}</span>
-                    <span class="text-danger">Remain: ${formatCurrency(totalRemaining)}</span>
+                <div class="loan-stats" style="margin-bottom: 12px;">
+                    <span>Progress: <strong class="text-primary">${loan.emisPaid} / ${loan.totalEmis}</strong> months</span>
+                    <span>Total Paid: ${formatCurrency(totalPaid)}</span>
                 </div>
 
                 <div class="loan-progress-container">
                     <div class="loan-progress-bar" style="width: ${percentPaid}%"></div>
                 </div>
                 
-                <div class="loan-stats" style="margin-top: -8px; margin-bottom: 8px;">
-                    <span>${percentPaid}% Paid Off</span>
+                <div class="loan-stats" style="margin-top: -8px; margin-bottom: 12px;">
+                    <span>Debt Reduced: ${percentPaid}%</span>
                     <span>${percentRemaining}% Remaining</span>
                 </div>
+                
+                <div style="padding: 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">${outstandingLabel}</span>
+                    <strong style="color: var(--danger);">${formatCurrency(totalRemaining)}</strong>
+                </div>
+
+                ${metricsHtml}
                 
                 <div class="loan-actions" style="gap: 12px; justify-content: flex-start; align-items: center; flex-wrap: wrap;">
                     <span style="font-size: 0.85rem; color: var(--text-muted);">Last EMI Paid:</span>
@@ -1973,10 +2067,22 @@ window.editLoan = function (id) {
     document.getElementById('loan-modal-title').textContent = 'Edit Loan';
     document.getElementById('loan-edit-id').value = loan.id;
     document.getElementById('loan-purpose').value = loan.purpose;
+    document.getElementById('loan-principal').value = loan.principal || '';
+    document.getElementById('loan-interest-rate').value = loan.interestRate || '';
     document.getElementById('loan-emi').value = loan.emi;
     document.getElementById('loan-total-emis').value = loan.totalEmis;
     document.getElementById('loan-start-date').value = loan.startDate || '';
-    document.getElementById('loan-paid-upto').value = '';
+    
+    // Set last paid month string for the month input if available
+    if (loan.startDate && loan.emisPaid > 0) {
+        const d = new Date(loan.startDate);
+        d.setMonth(d.getMonth() + loan.emisPaid - 1);
+        const y = d.getFullYear();
+        const m = (d.getMonth() + 1).toString().padStart(2, '0');
+        document.getElementById('loan-paid-upto').value = `${y}-${m}`;
+    } else {
+        document.getElementById('loan-paid-upto').value = '';
+    }
 
     modal.classList.add('active');
     lucide.createIcons();
@@ -1987,6 +2093,7 @@ window.payEMI = function (id) {
     if (loan && loan.emisPaid < loan.totalEmis) {
         loan.emisPaid++;
         saveState();
+        renderLoans();
     }
 };
 
@@ -1995,6 +2102,7 @@ window.undoEMI = function (id) {
     if (loan && loan.emisPaid > 0) {
         loan.emisPaid--;
         saveState();
+        renderLoans();
     }
 };
 
@@ -2002,5 +2110,6 @@ window.deleteLoan = function (id) {
     if (confirm("Are you sure you want to delete this loan?")) {
         AppState.loans = AppState.loans.filter(l => l.id !== id);
         saveState();
+        renderLoans();
     }
 };

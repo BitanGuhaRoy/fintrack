@@ -640,13 +640,25 @@
                     <label for="loan-purpose">Loan Purpose</label>
                     <input type="text" id="loan-purpose" placeholder="e.g. Home Loan, Car Loan" required>
                 </div>
-                <div class="form-group">
-                    <label for="loan-emi">EMI Amount</label>
-                    <input type="number" id="loan-emi" placeholder="0" min="1" required>
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label for="loan-principal">Principal (₹)</label>
+                        <input type="number" id="loan-principal" placeholder="0" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loan-interest-rate">Interest Rate (%)</label>
+                        <input type="number" id="loan-interest-rate" placeholder="e.g. 9.5" step="0.01" min="0" required>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="loan-total-emis">Total EMIs (Months)</label>
-                    <input type="number" id="loan-total-emis" placeholder="e.g. 60" min="1" required>
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label for="loan-emi">EMI Amount (₹)</label>
+                        <input type="number" id="loan-emi" placeholder="0" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loan-total-emis">Total EMIs</label>
+                        <input type="number" id="loan-total-emis" placeholder="e.g. 60" min="1" required>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="loan-start-date">1st EMI Date</label>

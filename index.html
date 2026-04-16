@@ -30,6 +30,24 @@
 </head>
 <body class="dark-theme">
     <div class="app-container">
+        <!-- Mobile Header (Only visible on small screens) -->
+        <header class="mobile-header">
+            <div class="mobile-logo">
+                <i data-lucide="wallet"></i>
+                <span>FinTrack</span>
+            </div>
+            <div class="mobile-profile" id="mobile-profile-section">
+                <div id="user-logged-out-mobile">
+                    <button id="btn-login-mobile" class="mobile-login-btn">
+                        <i data-lucide="log-in"></i>
+                    </button>
+                </div>
+                <div id="user-logged-in-mobile" style="display:none;">
+                    <img id="user-photo-mobile" src="" alt="User" class="user-avatar-mobile">
+                </div>
+            </div>
+        </header>
+
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="logo">
@@ -719,7 +737,31 @@
                 </div>
             </div>
         </div>
+        <!-- Mobile Bottom Navigation (Only visible on small screens) -->
+        <nav class="mobile-bottom-nav">
+            <button class="nav-item active" data-tab="overview">
+                <i data-lucide="layout-dashboard"></i>
+                <span>Overview</span>
+            </button>
+            <button class="nav-item" data-tab="planner">
+                <i data-lucide="calendar-days"></i>
+                <span>Planner</span>
+            </button>
+            <button class="nav-item" data-tab="goals">
+                <i data-lucide="target"></i>
+                <span>Goals</span>
+            </button>
+            <button class="nav-item" data-tab="expenses">
+                <i data-lucide="smartphone"></i>
+                <span>UPI</span>
+            </button>
+            <button class="nav-item" data-tab="loans">
+                <i data-lucide="landmark"></i>
+                <span>Loans</span>
+            </button>
+        </nav>
     </div>
+
     
     <script type="module" src="main.js"></script>
 </body>

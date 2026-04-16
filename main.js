@@ -128,17 +128,31 @@ window.resetAllData = async function () {
 function updateAuthUI(isLoggedIn) {
     const loggedOutSection = document.getElementById('user-logged-out');
     const loggedInSection = document.getElementById('user-logged-in');
+    
+    // Mobile counterparts
+    const loggedOutMobile = document.getElementById('user-logged-out-mobile');
+    const loggedInMobile = document.getElementById('user-logged-in-mobile');
 
     if (isLoggedIn && currentUser) {
-        loggedOutSection.style.display = 'none';
-        loggedInSection.style.display = 'block';
-        document.getElementById('user-name').textContent = currentUser.displayName;
-        document.getElementById('user-email').textContent = currentUser.email;
-        document.getElementById('user-photo').src = currentUser.photoURL || 'https://via.placeholder.com/40';
+        if (loggedOutSection) loggedOutSection.style.display = 'none';
+        if (loggedInSection) loggedInSection.style.display = 'block';
+        if (loggedOutMobile) loggedOutMobile.style.display = 'none';
+        if (loggedInMobile) loggedInMobile.style.display = 'block';
+
+        if (document.getElementById('user-name')) document.getElementById('user-name').textContent = currentUser.displayName;
+        if (document.getElementById('user-email')) document.getElementById('user-email').textContent = currentUser.email;
+        if (document.getElementById('user-photo')) document.getElementById('user-photo').src = currentUser.photoURL || 'https://via.placeholder.com/40';
+        
+        if (document.getElementById('user-photo-mobile')) document.getElementById('user-photo-mobile').src = currentUser.photoURL || 'https://via.placeholder.com/40';
     } else {
-        loggedOutSection.style.display = 'block';
-        loggedInSection.style.display = 'none';
+        if (loggedOutSection) loggedOutSection.style.display = 'block';
+        if (loggedInSection) loggedInSection.style.display = 'none';
+        if (loggedOutMobile) loggedOutMobile.style.display = 'block';
+        if (loggedInMobile) loggedInMobile.style.display = 'none';
     }
+    
+    // Refresh icons in mobile header/nav
+    if (window.lucide) lucide.createIcons();
 }
 
 // --- SETUP & NAVIGATION ---
@@ -153,8 +167,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginBtn = document.getElementById('btn-login');
     const logoutBtn = document.getElementById('btn-logout');
 
-    if (loginBtn) {
-        loginBtn.addEventListener('click', async () => {
+    if (loginBtn || document.getElementById('btn-login-mobile')) {
+        const triggerLogin = async () => {
             if (!auth) {
                 alert("Firebase not configured! Please paste your config in main.js first.");
                 return;
@@ -165,7 +179,11 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (e) {
                 console.error("Login failed:", e);
             }
-        });
+        };
+        if (loginBtn) loginBtn.addEventListener('click', triggerLogin);
+        if (document.getElementById('btn-login-mobile')) {
+            document.getElementById('btn-login-mobile').addEventListener('click', triggerLogin);
+        }
     }
 
     if (logoutBtn) {
@@ -202,16 +220,22 @@ function setupNavigation() {
 
     navItems.forEach(item => {
         item.addEventListener('click', () => {
-            // Remove active from all
-            navItems.forEach(nav => nav.classList.remove('active'));
-            tabPanes.forEach(tab => tab.classList.remove('active'));
+            const targetId = item.dataset.tab;
 
-            // Add active to clicked
-            item.classList.add('active');
-            const targetTab = document.getElementById(`tab-${item.dataset.tab}`);
+            // Remove active from all nav items and update all items with THIS targetId
+            navItems.forEach(nav => nav.classList.remove('active'));
+            document.querySelectorAll(`.nav-item[data-tab="${targetId}"]`).forEach(nav => nav.classList.add('active'));
+
+            // Update Tab Panes
+            tabPanes.forEach(tab => tab.classList.remove('active'));
+            const targetTab = document.getElementById(`tab-${targetId}`);
             if (targetTab) targetTab.classList.add('active');
 
-            // Reinitialize icons in case new ones were rendered
+            // Scroll to top on mobile for better UX
+            if (window.innerWidth <= 768) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
             lucide.createIcons();
         });
     });

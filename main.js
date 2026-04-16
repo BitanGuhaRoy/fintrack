@@ -94,22 +94,54 @@ async function saveState() {
 }
 
 window.resetAllData = async function () {
-    ...
+    if (confirm("Are you SURE you want to delete EVERY THING? This will wipe your cloud database and local storage. This cannot be undone.")) {
+        // Reset local state
+        AppState = {
+            monthlyPlans: {},
+            goals: [],
+            expenses: [],
+            loans: [],
+            assets: []
+        };
+
+        // Clear Local Storage
+        localStorage.removeItem('fintrack_state');
+
+        // Clear Cloud if logged in
+        if (currentUser) {
+            const { doc, setDoc } = FirebaseSDK;
+            try {
+                await setDoc(doc(db, "users", currentUser.uid), AppState);
+                alert("Cloud and Local data has been wiped. Starting from 0!");
+            } catch (e) {
+                console.error("Cloud wipe failed:", e);
+                alert("Local data wiped, but Cloud wipe failed. Check your connection.");
+            }
+        } else {
+            alert("Local data has been wiped. Starting from 0!");
+        }
+
+        location.reload(); // Refresh to show clean slate
+    }
 };
 
 window.toggleMobileSidebar = function(isOpen) {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
-    if (sidebar && overlay) {
-        if (isOpen) {
-            sidebar.classList.add('active');
-            overlay.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        } else {
-            sidebar.classList.remove('active');
-            overlay.classList.remove('active');
-            document.body.style.overflow = '';
-        }
+    
+    if (!sidebar || !overlay) {
+        console.warn("Mobile sidebar elements not found!");
+        return;
+    }
+    
+    if (isOpen) {
+        sidebar.classList.add('active');
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    } else {
+        sidebar.classList.remove('active');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
     }
 };
 
@@ -185,14 +217,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateUI();
 
-    // Mobile Sidebar Listeners
+    // Mobile Sidebar Initialization
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
     const closeSidebarBtn = document.getElementById('close-sidebar-btn');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
 
-    if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', () => window.toggleMobileSidebar(true));
-    if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', () => window.toggleMobileSidebar(false));
-    if (sidebarOverlay) sidebarOverlay.addEventListener('click', () => window.toggleMobileSidebar(false));
+    if (mobileMenuBtn) {
+        mobileMenuBtn.onclick = () => window.toggleMobileSidebar(true);
+    }
+    if (closeSidebarBtn) {
+        closeSidebarBtn.onclick = () => window.toggleMobileSidebar(false);
+    }
+    if (sidebarOverlay) {
+        sidebarOverlay.onclick = () => window.toggleMobileSidebar(false);
+    }
 });
 
 window.switchTab = function (tabName) {

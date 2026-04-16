@@ -317,13 +317,13 @@ body.dark-theme {
 }
 
 /* Specific Layouts */
-.planner-layout, .goals-layout, .expenses-layout {
+.planner-layout, .expenses-layout {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 32px;
 }
 @media (max-width: 968px) {
-    .planner-layout, .goals-layout, .expenses-layout {
+    .planner-layout, .expenses-layout {
         grid-template-columns: 1fr;
     }
 }
@@ -341,7 +341,7 @@ body.dark-theme {
 }
 
 /* Lists and Items */
-.expense-item, .goal-item {
+.expense-item {
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -349,7 +349,7 @@ body.dark-theme {
     margin-bottom: 16px;
     transition: var(--transition);
 }
-.expense-item:hover, .goal-item:hover {
+.expense-item:hover {
     background: rgba(255, 255, 255, 0.05);
 }
 
@@ -393,26 +393,6 @@ body.dark-theme {
     transition: width 0.5s ease-out;
 }
 
-.goal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-}
-.goal-stats {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.875rem;
-    color: var(--text-muted);
-}
-.goal-investment {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    font-style: italic;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border-color);
-}
 
 .records-header {
     display: flex;
@@ -902,4 +882,128 @@ body.dark-theme {
         justify-content: space-between;
         padding-right: 16px;
     }
+}
+/* --- BUDGET BUCKETS REDESIGN --- */
+.bucket-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+.bucket-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateX(4px);
+}
+
+.bucket-item.is-paid {
+    background: rgba(16, 185, 129, 0.04);
+    border-color: rgba(16, 185, 129, 0.1);
+}
+
+.bucket-item.is-paid .bucket-name {
+    text-decoration: line-through;
+    text-decoration-thickness: 1.5px;
+    color: var(--text-muted);
+}
+
+.bucket-item.is-paid .bucket-amount {
+    color: var(--success);
+    opacity: 0.8;
+}
+
+.bucket-check-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border-color);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.bucket-check-btn:hover {
+    border-color: var(--success);
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.bucket-item.is-paid .bucket-check-btn {
+    background: var(--success);
+    border-color: var(--success);
+    color: #fff;
+}
+
+.bucket-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.bucket-item:hover .bucket-icon-box {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--primary);
+}
+
+.bucket-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.bucket-name {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-main);
+    line-height: 1.2;
+    margin-bottom: 2px;
+}
+
+.bucket-category {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+.bucket-amount-box {
+    text-align: right;
+    margin-right: 8px;
+}
+
+.bucket-amount {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-main);
+}
+
+.bucket-actions {
+    display:flex;
+    gap: 8px;
+    opacity: 0.3; /* Increased baseline opacity for visibility */
+    transition: opacity 0.2s;
+}
+
+.bucket-item:hover .bucket-actions {
+    opacity: 1;
+}
+
+@media (max-width: 768px) {
+    .bucket-actions { opacity: 1; }
+    .bucket-item:hover { transform: none; }
 }

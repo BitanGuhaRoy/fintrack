@@ -34,7 +34,6 @@ if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
 // --- STATE MANAGEMENT ---
 let AppState = {
     monthlyPlans: {},
-    goals: [],
     expenses: [],
     loans: [],
     assets: []
@@ -98,7 +97,6 @@ window.resetAllData = async function () {
         // Reset local state
         AppState = {
             monthlyPlans: {},
-            goals: [],
             expenses: [],
             loans: [],
             assets: []
@@ -314,26 +312,6 @@ function setupNavigation() {
 }
 
 function setupForms() {
-    // Goal Form
-    const goalForm = document.getElementById('goal-form');
-    goalForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const currentYear = new Date().getFullYear();
-        const newGoal = {
-            id: Date.now().toString(),
-            name: document.getElementById('goal-name').value.trim(),
-            targetToday: Number(document.getElementById('goal-target').value),
-            creationYear: currentYear,
-            inflationRate: Number(document.getElementById('goal-inflation').value) || 6,
-            saved: 0,
-            monthlyLogs: [],
-            countInNetWorth: true
-        };
-        AppState.goals.push(newGoal);
-        saveState();
-        goalForm.reset();
-        renderGoals();
-    });
 
     // Expense Modal wiring
     const expenseModal = document.getElementById('expense-modal');
@@ -643,184 +621,6 @@ function setupForms() {
     });
 }
 
-// --- MODAL LOGIC ---
-function setupModal() {
-    const modal = document.getElementById('goal-modal');
-    const closeBtn = document.getElementById('close-modal');
-
-    if (!modal) return;
-
-    closeBtn.addEventListener('click', closeGoalModal);
-
-    // Close on background click
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeGoalModal();
-    });
-
-    // Edit Goal Form Submit
-    const editGoalForm = document.getElementById('edit-goal-form');
-    editGoalForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const id = document.getElementById('edit-goal-id').value;
-        const goal = AppState.goals.find(g => g.id === id);
-        if (goal) {
-            goal.name = document.getElementById('edit-goal-name').value;
-            goal.targetToday = Number(document.getElementById('edit-goal-target').value);
-            goal.inflationRate = Number(document.getElementById('edit-goal-inflation').value) || 6;
-            goal.countInNetWorth = document.getElementById('edit-goal-networth').checked;
-            goal.investment = document.getElementById('edit-goal-investment').value;
-
-            saveState();
-            closeGoalModal();
-            renderGoals();
-        }
-    });
-
-    // Monthly Ledger Form Submit
-    const monthlyForm = document.getElementById('monthly-ledger-form');
-    monthlyForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const id = document.getElementById('edit-goal-id').value;
-        const goal = AppState.goals.find(g => g.id === id);
-        if (goal) {
-            const dateStr = document.getElementById('monthly-date').value; // YYYY-MM
-            const invested = Number(document.getElementById('monthly-invested').value);
-            const corpus = Number(document.getElementById('monthly-corpus').value);
-
-            if (!goal.monthlyLogs) goal.monthlyLogs = [];
-
-            const existingIdx = goal.monthlyLogs.findIndex(m => m.date === dateStr);
-            if (existingIdx > -1) {
-                goal.monthlyLogs[existingIdx] = { date: dateStr, invested, corpus };
-            } else {
-                goal.monthlyLogs.push({ date: dateStr, invested, corpus });
-            }
-
-            recalculateGoalSaved(goal.id);
-            saveState();
-            monthlyForm.reset();
-            renderMonthlyLogs(goal.id);
-            renderGoals();
-        }
-    });
-}
-
-// --- ROW ACTIONS & MATH ---
-window.editLog = function (goalId, monthStr) {
-    const goal = AppState.goals.find(g => g.id === goalId);
-    if (!goal || !goal.monthlyLogs) return;
-
-    const item = goal.monthlyLogs.find(m => m.date === monthStr);
-    if (item) {
-        document.getElementById('monthly-date').value = item.date;
-        document.getElementById('monthly-invested').value = item.invested;
-        document.getElementById('monthly-corpus').value = item.corpus;
-    }
-};
-
-window.deleteLog = function (goalId, monthStr) {
-    const goal = AppState.goals.find(g => g.id === goalId);
-    if (!goal || !goal.monthlyLogs) return;
-
-    goal.monthlyLogs = goal.monthlyLogs.filter(m => m.date !== monthStr);
-    recalculateGoalSaved(goal.id);
-    saveState();
-    renderMonthlyLogs(goal.id);
-    renderGoals();
-};
-
-function recalculateGoalSaved(goalId) {
-    const goal = AppState.goals.find(g => g.id === goalId);
-    if (!goal) return;
-
-    if (!goal.monthlyLogs || goal.monthlyLogs.length === 0) {
-        goal.saved = 0;
-        return;
-    }
-
-    // Sort descending by date (YYYY-MM string sorts properly alphabetically)
-    const sorted = [...goal.monthlyLogs].sort((a, b) => b.date.localeCompare(a.date));
-    goal.saved = sorted[0].corpus;
-}
-
-window.openGoalModal = function(id) {
-    const goal = AppState.goals.find(g => g.id === id);
-    if (!goal) return;
-
-    document.getElementById('edit-goal-id').value = goal.id;
-    document.getElementById('edit-goal-name').value = goal.name;
-    document.getElementById('edit-goal-target').value = goal.targetToday || goal.target || 0;
-    document.getElementById('edit-goal-inflation').value = goal.inflationRate !== undefined ? goal.inflationRate : 6;
-
-    const nwCheckbox = document.getElementById('edit-goal-networth');
-    nwCheckbox.checked = goal.countInNetWorth !== false;
-
-    document.getElementById('edit-goal-investment').value = goal.investment || '';
-
-    document.getElementById('goal-modal').classList.add('active');
-
-    // Render the table
-    renderMonthlyLogs(id);
-}
-
-window.closeGoalModal = function() {
-    document.getElementById('goal-modal').classList.remove('active');
-}
-
-window.deleteGoal = function () {
-    const id = document.getElementById('edit-goal-id').value;
-    if (!id) return;
-
-    if (confirm('Are you sure you want to delete this goal? This cannot be undone.')) {
-        AppState.goals = AppState.goals.filter(g => g.id !== id);
-        saveState();
-        closeGoalModal();
-        renderGoals();
-    }
-};
-
-function renderMonthlyLogs(id) {
-    const goal = AppState.goals.find(g => g.id === id);
-    if (!goal) return;
-
-    const tbody = document.getElementById('monthly-list-body');
-    if (!tbody) return;
-
-    tbody.innerHTML = '';
-
-    if (!goal.monthlyLogs || goal.monthlyLogs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-muted" style="text-align: center; padding: 16px;">No monthly logs recorded yet.</td></tr>';
-        return;
-    }
-
-    // Sort descending by date
-    const sorted = [...goal.monthlyLogs].sort((a, b) => b.date.localeCompare(a.date));
-    sorted.forEach(inv => {
-        // format date string from YYYY-MM to Month Year
-        let dateDisplay = inv.date;
-        try {
-            const [y, m] = inv.date.split('-');
-            const dateObj = new Date(y, m - 1);
-            dateDisplay = dateObj.toLocaleString('default', { month: 'short', year: 'numeric' });
-        } catch (e) { }
-
-        tbody.innerHTML += `
-            <tr>
-                <td>${dateDisplay}</td>
-                <td>${formatCurrency(inv.invested)}</td>
-                <td class="text-success font-bold">${formatCurrency(inv.corpus)}</td>
-                <td>
-                    <div style="display:flex;">
-                        <button type="button" class="btn-icon" style="padding:4px" onclick="editLog('${id}', '${inv.date}')"><i data-lucide="edit-2" class="icon-sm"></i></button>
-                        <button type="button" class="btn-icon" style="padding:4px" onclick="deleteLog('${id}', '${inv.date}')"><i data-lucide="trash" class="icon-sm text-danger"></i></button>
-                    </div>
-                </td>
-            </tr>
-        `;
-    });
-    lucide.createIcons();
-}
-
 // --- CURRENCY FORMATTER ---
 const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
@@ -863,96 +663,12 @@ function calculateCurrentMonthAvg() {
 // --- UI UPDATES ---
 function updateUI() {
     renderPlanner();
-    renderGoals();
     renderExpenses();
     renderOverview();
     renderLoans();
     renderAssets();
     lucide.createIcons();
 }
-
-
-
-
-function renderGoals() {
-    const container = document.getElementById('goals-list-container');
-    const overviewContainer = document.getElementById('overview-goals-list');
-
-    container.innerHTML = '';
-    overviewContainer.innerHTML = '';
-
-    if (AppState.goals.length === 0) {
-        container.innerHTML = '<p class="text-muted">No goals added yet.</p>';
-        overviewContainer.innerHTML = '<p class="text-muted">No active goals.</p>';
-        return;
-    }
-
-    const currentYear = new Date().getFullYear();
-
-    AppState.goals.forEach((goal, idx) => {
-        // Fallbacks for older data structures
-        const targetToday = goal.targetToday || goal.target || 0;
-        const creationYear = goal.creationYear || currentYear;
-        const inflationRate = (goal.inflationRate !== undefined) ? goal.inflationRate : 6;
-        const monthlySip = goal.monthlySip || 0;
-
-        const yearsElapsed = Math.max(0, currentYear - creationYear);
-
-        // 1. Inflation Adjusted Target
-        const adjustedTarget = targetToday * Math.pow(1 + inflationRate / 100, yearsElapsed);
-
-        // 2. Percentages
-        const currentPercent = adjustedTarget > 0 ? Math.min(100, Math.round((goal.saved / adjustedTarget) * 100)) : 0;
-
-        const inNW = goal.countInNetWorth !== false;
-        const nwBadge = inNW
-            ? `<span style="font-size:0.7rem; background:rgba(16,185,129,0.15); color:var(--success); border:1px solid var(--success); border-radius:20px; padding:2px 8px;">Net Worth</span>`
-            : `<span style="font-size:0.7rem; background:rgba(255,255,255,0.05); color:var(--text-muted); border:1px solid var(--border-color); border-radius:20px; padding:2px 8px;">Not counted</span>`;
-
-        const html = `
-            <div class="goal-item" onclick="openGoalModal('${goal.id}')" style="cursor:pointer;">
-                <div class="goal-header" style="margin-bottom:12px;">
-                    <h4 style="margin:0; font-size:1.1rem; display:flex; align-items:center; gap:8px;">${goal.name} <span style="font-size:0.8rem; font-weight:normal; color:var(--text-muted);">Est. ${creationYear}</span></h4>
-                    ${nwBadge}
-                </div>
-                
-                <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:8px; padding:12px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <div style="font-size:0.75rem; color:var(--text-muted);">Adjusted Target (at ${inflationRate}% inf.)</div>
-                        <div style="font-weight:700; color:var(--text-main); font-size:1.1rem;">${formatCurrency(adjustedTarget)}</div>
-                    </div>
-                </div>
-
-                <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:4px;">
-                    <span style="color:var(--text-muted);">Currently Saved: <strong style="color:var(--text-main);">${formatCurrency(goal.saved)}</strong></span>
-                </div>
-                
-                <div class="progress-bar-container" style="height:6px; margin-bottom:8px; background:rgba(255,255,255,0.05); position:relative; overflow:hidden;">
-                    <!-- Current Saved Progress -->
-                    <div class="progress-bar-fill" style="width: ${currentPercent}%; background:var(--success); position:absolute; top:0; left:0; height:100%; z-index:2;"></div>
-                </div>
-                
-                <div style="font-size:0.75rem; color:var(--text-muted); display:flex; justify-content:space-between;">
-                    <span>Monthly SIP: <strong>${formatCurrency(monthlySip)}</strong></span>
-                    <span class="text-success font-bold">${currentPercent}% achieved</span>
-                </div>
-            </div>
-        `;
-
-        container.insertAdjacentHTML('beforeend', html);
-
-        if (idx === 0) {
-            overviewContainer.insertAdjacentHTML('beforeend', html);
-        }
-    });
-
-    if (AppState.goals.length > 1) {
-        overviewContainer.insertAdjacentHTML('beforeend', `<button class="btn btn-secondary w-full" style="margin-top:8px;" onclick="window.switchTab('goals')">See More (${AppState.goals.length - 1} Other${AppState.goals.length > 2 ? 's' : ''})</button>`);
-    } else if (AppState.goals.length === 1) {
-        overviewContainer.insertAdjacentHTML('beforeend', `<button class="btn btn-secondary w-full" style="margin-top:8px;" onclick="window.switchTab('goals')">Manage Goals</button>`);
-    }
-}
-
 // ── PLANNER ──────────────────────────────────────────────────────────────────
 
 let plannerYear = new Date().getFullYear();
@@ -963,9 +679,29 @@ const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
 const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const CATEGORY_ICONS = {
-    housing: '🏠', food: '🍔', transport: '🚗', utilities: '⚡',
-    loans: '🏦', health: '💊', entertainment: '🎬', savings: '💰', other: '📦'
+    housing: 'home', 
+    rent: 'home',
+    food: 'utensils', 
+    groceries: 'utensils',
+    transport: 'car', 
+    fuel: 'car',
+    utilities: 'zap',
+    bills: 'zap',
+    loans: 'landmark', 
+    emi: 'landmark',
+    health: 'heart-pulse', 
+    medical: 'heart-pulse',
+    entertainment: 'clapperboard', 
+    subscriptions: 'clapperboard',
+    savings: 'piggy-bank', 
+    investment: 'piggy-bank',
+    other: 'package'
 };
+
+function getCategoryIcon(cat) {
+    const key = (cat || 'other').toLowerCase().trim();
+    return CATEGORY_ICONS[key] || CATEGORY_ICONS['other'];
+}
 
 function getPlannerKey(year = plannerYear, month = plannerMonth) {
     return `${year}-${String(month + 1).padStart(2, '0')}`;
@@ -1044,44 +780,39 @@ function renderPlannerBuckets() {
     }
 
     container.innerHTML = buckets.map(b => {
-        const icon = CATEGORY_ICONS[(b.category || '').toLowerCase()] || '📦';
-        const paidColor = b.paid ? 'var(--success)' : 'var(--text-muted)';
-        const cardBg = b.paid ? 'rgba(16,185,129,0.06)' : 'rgba(255,255,255,0.02)';
-        const borderColor = b.paid ? 'rgba(16,185,129,0.3)' : 'var(--border-color)';
+        const iconName = getCategoryIcon(b.category);
+        const isPaidClass = b.paid ? 'is-paid' : '';
+        
         return `
-        <div style="background:${cardBg}; border:1px solid ${borderColor}; border-radius:14px; padding:18px 20px; transition:all 0.2s;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <span style="font-size:1.4rem;">${icon}</span>
-                    <div>
-                        <div style="font-weight:600; font-size:0.95rem; ${b.paid ? 'text-decoration:line-through; color:var(--text-muted);' : ''}">${b.name}</div>
-                        <div style="font-size:0.75rem; color:var(--text-muted); text-transform:capitalize;">${b.category}</div>
-                    </div>
-                </div>
-                <div style="text-align:right;">
-                    <div style="font-weight:700; font-size:1.1rem; color:${b.paid ? 'var(--success)' : 'var(--text-main)'};">${formatCurrency(b.amount)}</div>
-                </div>
+        <div class="bucket-item ${isPaidClass}">
+            <button class="bucket-check-btn" onclick="toggleBucketPaid('${b.id}')" title="${b.paid ? 'Mark as Unpaid' : 'Mark as Paid'}">
+                ${b.paid ? '<i data-lucide="check" class="icon-sm"></i>' : ''}
+            </button>
+            
+            <div class="bucket-icon-box" style="color: ${b.paid ? 'var(--success)' : 'var(--primary)'};">
+                <i data-lucide="${iconName}" class="icon-sm"></i>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                <button onclick="toggleBucketPaid('${b.id}')"
-                    style="flex:1; padding:8px 12px; border-radius:8px; border:1px solid ${paidColor};
-                           background:${b.paid ? 'rgba(16,185,129,0.15)' : 'transparent'};
-                           color:${paidColor}; cursor:pointer; font-size:0.82rem; font-weight:600; transition:all 0.2s;">
-                    ${b.paid ? '✅ Paid' : '⬜ Mark as Paid'}
+            
+            <div class="bucket-info">
+                <div class="bucket-name">${b.name}</div>
+                <div class="bucket-category">${b.category || 'Other'}</div>
+            </div>
+            
+            <div class="bucket-amount-box">
+                <div class="bucket-amount">${formatCurrency(b.amount)}</div>
+            </div>
+            
+            <div class="bucket-actions">
+                <button class="btn-icon" onclick="editBucket('${b.id}')" title="Edit">
+                    <i data-lucide="edit-3" class="icon-sm"></i>
                 </button>
-                <button onclick="editBucket('${b.id}')"
-                    style="padding:8px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2);
-                           background:transparent; color:var(--text-main); cursor:pointer; font-size:0.82rem; transition:all 0.2s; min-width:44px;" title="Edit">
-                    ✏️
-                </button>
-                <button onclick="deleteBucket('${b.id}')"
-                    style="padding:8px 12px; border-radius:8px; border:1px solid rgba(239,68,68,0.3);
-                           background:transparent; color:var(--danger); cursor:pointer; font-size:0.82rem; transition:all 0.2s; min-width:44px;" title="Delete">
-                    🗑
+                <button class="btn-icon text-danger" onclick="deleteBucket('${b.id}')" title="Delete">
+                    <i data-lucide="trash" class="icon-sm"></i>
                 </button>
             </div>
         </div>`;
     }).join('');
+    lucide.createIcons();
 }
 
 function renderPlannerComparison() {
@@ -1108,28 +839,32 @@ function renderPlannerComparison() {
     let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
     prevBuckets.forEach(pb => {
         const curr = currBuckets.find(cb => cb.name.toLowerCase() === pb.name.toLowerCase());
-        const icon = CATEGORY_ICONS[pb.category] || '📦';
+        const iconName = getCategoryIcon(pb.category);
         const diff = curr ? curr.amount - pb.amount : null;
+        
         const diffHtml = diff !== null
-            ? `<span style="font-size:0.78rem; color:${diff > 0 ? 'var(--danger)' : 'var(--success)'}; font-weight:600; margin-left:8px;">${diff > 0 ? '▲' : '▼'} ${formatCurrency(Math.abs(diff))}</span>`
-            : '<span style="font-size:0.78rem; color:var(--text-muted); margin-left:8px;">not in this month</span>';
+            ? `<span style="font-size:0.75rem; color:${diff > 0 ? 'var(--danger)' : 'var(--success)'}; font-weight:700; margin-left:8px; display:inline-flex; align-items:center; gap:2px;">
+                <i data-lucide="${diff > 0 ? 'trending-up' : 'trending-down'}" class="icon-xs"></i> ${formatCurrency(Math.abs(diff))}
+               </span>`
+            : '<span style="font-size:0.72rem; color:var(--text-muted); margin-left:8px;">New in curr. month</span>';
 
         html += `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px;
-             background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:8px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-                <span>${icon}</span>
-                <span style="font-size:0.88rem;">${pb.name}</span>
-                ${pb.paid ? '<span style="font-size:0.7rem; background:rgba(16,185,129,0.15); color:var(--success); padding:2px 8px; border-radius:10px;">Paid</span>' : ''}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px;
+             background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:10px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="color:var(--text-muted); opacity:0.7;"><i data-lucide="${iconName}" class="icon-xs"></i></div>
+                <div style="font-size:0.9rem; font-weight:500;">${pb.name}</div>
+                ${pb.paid ? '<i data-lucide="check-circle" class="icon-xs" style="color:var(--success); opacity:0.8;"></i>' : ''}
             </div>
-            <div style="display:flex; align-items:center;">
-                <span style="font-weight:600;">${formatCurrency(pb.amount)}</span>
+            <div style="display:flex; align-items:center; gap:4px;">
+                <span style="font-weight:600; font-size:0.95rem;">${formatCurrency(pb.amount)}</span>
                 ${diffHtml}
             </div>
         </div>`;
     });
     html += '</div>';
     prevEl.innerHTML = html;
+    lucide.createIcons();
 }
 
 window.toggleBucketPaid = function (id) {
@@ -1588,7 +1323,7 @@ function renderInsights(totalAssets, totalLiabilities) {
     // 1. Emergency Fund
     const planner = AppState.planner || { rent: 0, emi: 0, fuel: 0, utilities: 0 };
     const fixedExpenses = (planner.rent || 0) + (planner.emi || 0) + (planner.fuel || 0) + (planner.utilities || 0);
-    const liquidAssets = (AppState.goals || []).reduce((sum, g) => sum + (g.saved || 0), 0);
+    const liquidAssets = 0;
 
     let efClass = 'warning';
     let efMessage = 'Data needed.';
@@ -1680,14 +1415,8 @@ function renderInsights(totalAssets, totalLiabilities) {
 function renderOverview() {
     const currentYear = new Date().getFullYear();
 
-    // Goals contributing to net worth
-    const goalAssets = (AppState.goals || []).reduce((sum, g) => {
-        if (g.countInNetWorth === false) return sum;
-        return sum + (g.saved || 0);
-    }, 0);
-
     // Physical assets contributing to net worth
-    const physicalAssets = (AppState.assets || []).reduce((sum, a) => {
+    const totalAssets = (AppState.assets || []).reduce((sum, a) => {
         if (a.countInNetWorth === false) return sum;
         const yearsHeld = Math.max(0, currentYear - a.yearBought);
         const currentVal = a.isAppreciating && a.cagr > 0
@@ -1695,8 +1424,6 @@ function renderOverview() {
             : a.purchaseValue;
         return sum + currentVal;
     }, 0);
-
-    const totalAssets = goalAssets + physicalAssets;
 
     // Total liabilities
     const totalLiabilities = (AppState.loans || []).reduce((sum, l) => {
@@ -1709,22 +1436,14 @@ function renderOverview() {
         return sum + remaining;
     }, 0);
 
-    const netWorth = totalAssets - totalLiabilities;
-
-    // Call our new Intelligence UI
+    // Net worth and insights
     renderInsights(totalAssets, totalLiabilities);
 
-    const isPositive = netWorth >= 0;
-
     // Update stat cards
-    const nwEl = document.getElementById('overview-net-worth');
-    const breakdownEl = document.getElementById('overview-nw-breakdown');
     const assetsEl = document.getElementById('overview-total-assets');
     const liabEl = document.getElementById('overview-total-liabilities');
 
-    if (nwEl) { nwEl.textContent = formatCurrency(netWorth); nwEl.style.color = isPositive ? 'var(--success)' : 'var(--danger)'; }
-    if (breakdownEl) breakdownEl.textContent = `Goals ${formatCurrency(goalAssets)} + Assets ${formatCurrency(physicalAssets)} − Loans ${formatCurrency(totalLiabilities)}`;
-    if (assetsEl) assetsEl.textContent = formatCurrency(physicalAssets);  // Only physical assets
+    if (assetsEl) assetsEl.textContent = formatCurrency(totalAssets);
     if (liabEl) liabEl.textContent = formatCurrency(totalLiabilities);
 
     // Populate overview-assets-list
